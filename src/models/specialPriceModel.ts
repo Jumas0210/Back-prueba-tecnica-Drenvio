@@ -8,6 +8,10 @@ class specialPriceModel{
         return await specialPrice.find();
     }
 
+    async findOne(ids){
+        return await specialPrice.findOne(ids);
+    }
+
     async create(price : ISpecialPrice){
         return await specialPrice.create(price);
     }
