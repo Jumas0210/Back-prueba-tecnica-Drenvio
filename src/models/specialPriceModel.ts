@@ -16,50 +16,54 @@ class specialPriceModel{
         return await specialPrice.create(price);
     }
 
-    async getAllProductsSpecial( userID : number ){
-
+    async getAllProductsSpecial(userID: number) {
         const specialProducts = await products.aggregate([
             {
                 $lookup: {
-                    from : 'preciosEspecialesDelatorre33',
-                    localField : '_id',
-                    foreignField : 'productID',
-                    as : 'specialPriceData'
+                    from: 'preciosEspecialesDelatorre33',
+                    let: { productId: "$_id" },
+                    pipeline: [
+                        { 
+                            $match: { 
+                                $expr: { 
+                                    $and: [
+                                        { $eq: ["$productID", "$$productId"] },
+                                        { $eq: ["$userID", userID] } // 🔥 Filtrar solo precios del usuario actual
+                                    ] 
+                                } 
+                            } 
+                        }
+                    ],
+                    as: "specialPriceData"
                 }
             },
             {
                 $unwind: {
-                    path: '$specialPriceData',
-                    preserveNullAndEmptyArrays: true,
+                    path: "$specialPriceData",
+                    preserveNullAndEmptyArrays: true // 🔥 Esto mantiene los productos sin descuentos
                 }
             },
             {
-                $project: {
-                    _id: 1,
-                    name: 1,
-                    price: 1,
-                    specialPrice: {
-                      $cond: {
-                        if: { $eq: ['$specialPriceData.userID', userID] },
-                        then: '$specialPriceData.specialPrice',
-                        else: null
-                      }
-                    },
-                    category: 1,
-                    stock: 1,
-                    description: 1,
-                    brand: 1,
-                    sku: 1,
-                    tags: 1,
-                    createdAt: 1,
-                    updatedAt: 1 
+                $group: {
+                    _id: "$_id",
+                    name: { $first: "$name" },
+                    price: { $first: "$price" },
+                    category: { $first: "$category" },
+                    stock: { $first: "$stock" },
+                    description: { $first: "$description" },
+                    brand: { $first: "$brand" },
+                    sku: { $first: "$sku" },
+                    tags: { $first: "$tags" },
+                    createdAt: { $first: "$createdAt" },
+                    updatedAt: { $first: "$updatedAt" },
+                    specialPrice: { $first: { $ifNull: ["$specialPriceData.specialPrice", null] } } // 🔥 Solo muestra el precio del usuario actual
                 }
             }
-        ])
-
+        ]);
+    
         return specialProducts;
-
     }
+    
 }
 
 export default new specialPriceModel;
